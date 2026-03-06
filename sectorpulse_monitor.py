@@ -177,26 +177,31 @@ def detect(current, previous):
 def build_sms(current, alerts, top_ticker, top_stock):
     today = datetime.date.today().strftime('%m/%d')
     top   = current[top_ticker]
-    lines = [
-        f"📈 SectorPulse {today}",
-        f"Top: {top_ticker} {top['score']}/10 → buy {top_stock}",
-        f"RS:{top.get('rs13w',0):+.1f}% Mom:{top.get('rsMom',0):+.1f}",
-    ]
-    if alerts:
-        lines.append(f"\n⚡ {len(alerts)} alert(s):")
-        for a in alerts[:4]:   # cap at 4 so SMS stays short
-            lines.append(f"  {a}")
-    else:
-        lines.append("✅ No anomalies.")
 
-    # Top 3 sectors AFTER the top pick (avoids repeating it)
-    all_sorted = sorted(current.values(), key=lambda d: d['score'], reverse=True)
-    next3 = [d for d in all_sorted if d['ticker'] != top_ticker][:3]
-    lines.append(f"\nAlso watching:")
-    for d in next3:
-        lines.append(f"  {d['ticker']} {d['score']} {d['quadrant'][:4].upper()}")
-    lines.append("sectorpulse.app")  # replace with your real URL
-    return '\n'.join(lines)
+    # Top pick line
+    line1 = f"SP {today}|{top_ticker} {top['score']}->buy {top_stock}"
+
+    # Next 2 sectors
+    others = [d for d in sorted(current.values(), key=lambda d: d['score'], reverse=True)
+              if d['ticker'] != top_ticker][:2]
+    line2 = "|".join(f"{d['ticker']} {d['score']}" for d in others)
+
+    # Alerts — strip emojis, keep very short
+    high = [a for a in alerts if any(x in a for x in ['LEAD','IMPR','WEAK','LAG','score'])][:2]
+    line3 = ""
+    if high:
+        clean = []
+        for a in high:
+            a2 = a
+            for ch in ['🚀','📈','📉','⬆️','⬇️','🔊','⚡']:
+                a2 = a2.replace(ch,'')
+            clean.append(a2.strip()[:35])
+        line3 = "!" + "|".join(clean)
+
+    parts = [line1, line2]
+    if line3:
+        parts.append(line3)
+    return "\n".join(parts)
 
 # ── Send via Gmail SMTP ───────────────────────────────────────────
 def send(to, subject, body):
