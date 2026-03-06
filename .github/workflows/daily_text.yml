@@ -1,0 +1,35 @@
+name: SectorPulse Daily Text
+
+on:
+  schedule:
+    - cron: '0 13 * * 1-5'
+    - cron: '30 20 * * 1-5'
+  workflow_dispatch:
+
+jobs:
+  alert:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore state
+        uses: actions/cache@v4
+        with:
+          path: sector_state.json
+          key: sector-state-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: sector-state-${{ runner.os }}-
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install requests
+      - name: Run monitor
+        env:
+          FINNHUB_KEY:    ${{ secrets.FINNHUB_KEY }}
+          GMAIL_USER:     ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASS: ${{ secrets.GMAIL_APP_PASS }}
+          SMS_GATEWAY:    ${{ secrets.SMS_GATEWAY }}
+        run: python sectorpulse_monitor.py
+      - name: Save state
+        uses: actions/cache@v4
+        with:
+          path: sector_state.json
+          key: sector-state-${{ runner.os }}-${{ github.run_id }}
