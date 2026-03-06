@@ -189,12 +189,12 @@ def build_sms(current, alerts, top_ticker, top_stock):
     else:
         lines.append("✅ No anomalies.")
 
-    # Top 3 sectors
-    top3 = sorted(current.values(), key=lambda d: d['score'], reverse=True)[:3]
-    lines.append("\nTop 3:")
-    for d in top3:
+    # Top 3 sectors AFTER the top pick (avoids repeating it)
+    all_sorted = sorted(current.values(), key=lambda d: d['score'], reverse=True)
+    next3 = [d for d in all_sorted if d['ticker'] != top_ticker][:3]
+    lines.append(f"\nAlso watching:")
+    for d in next3:
         lines.append(f"  {d['ticker']} {d['score']} {d['quadrant'][:4].upper()}")
-
     lines.append("sectorpulse.app")  # replace with your real URL
     return '\n'.join(lines)
 
